@@ -1,0 +1,56 @@
+prepare_data){
+	. ~soft_bio_267/initializes/init_netanalyzer
+	cat $lists/* | sort -u > all_recs
+	rm all_tag_comb
+	for file in $combs/*; do
+		group=`basename $file`
+		intersect_columns.rb -k c -a all_recs -b $file --full | awk -F '\t' '{print "'$group'\t" $1 "\t" $6 "\t" $7 "\t" $8}' >> all_tag_comb
+	done
+	awk '{if($3 >= $string_thr) print $0}' $string_data | tr ' ' '\t' > string_filtered
+	?
+	randomize_clustering.rb -i all_tag_comb -r "size" -R -o random_clusters.txt
+	cut -f 2,5 all_tag_comb | awk '{if($2 != "-") print $0}' | tr -d ';' | sort -u > uniprot2string
+	standard_name_replacer.rb -i random_clusters.txt -I uniprot2string -c 2
+	grep '\.ENSP' random_clusters.txt_rep  > rnd_clust.txt
+}
+
+prioritize_clusters){
+	. ~soft_bio_267/initializes/init_crank
+	mkdir temp
+	cut -f 1,2 prepare_data)/string_filtered | tr "\t" "\n" | sort -u | awk '{print $1 "\t" NR}' > temp/gene_index
+	cut -f 1 temp/gene_index > temp/genes
+	cut -f 1,5 prepare_data)/all_tag_comb | awk '{if($2 != "-") print $0}' | tr -d ';' > temp/clusters
+	grep -w -F -f temp/genes temp/clusters | awk '{print $1 "_ref\t" $2}' > temp/clusters_filt
+	grep -w -F -f temp/genes prepare_data)/rnd_clust.txt >> temp/clusters_filt
+	cut -f 1,2 prepare_data)/string_filtered > temp/crank_string.txt
+	standard_name_replacer.rb -i temp/crank_string.txt -I temp/gene_index -c 1,2	#NETWORK
+	standard_name_replacer.rb -i temp/clusters_filt -I temp/gene_index -c 2		#CLUSTERS
+	aggregate_column_data.rb -i temp/clusters_filt_rep -x 0 -a 1 | tr '\t' ' ' | tr ',' ' ' > temp/clusters_AGG.txt
+	?
+	crank -i:temp/crank_string.txt_rep -c:temp/clusters_AGG.txt -o:crank_metrics.txt
+
+	if [ ! -s crank_metrics.txt ]; then 
+		>&2 echo " Cluster prioritization has failed"
+		exit 1
+	fi
+}
+
+get_metrics_select_lists){
+	source ~soft_bio_267/initializes/init_R
+	cut -f 1,2 prioritize_clusters)/crank_metrics.txt | tail -n +2 | tr "_" "\t" | awk '{OFS="\t";IFS="\t"}{print $1"_"$2,$3,$2}' > data_t_test.txt
+	plot_density.R -d data_t_test.txt -o crank_dist -x 2 -s 3 -X "CRank values" -l "Clustering type" -H
+	?
+	stat_test.R -t t_test:greater -i data_t_test.txt > result_t_test
+	tail -n +2 prioritize_clusters)/crank_metrics.txt | sort -k2,2 -n | grep -v random | tail -n $top_clusters | cut -f 1 | sed 's/_ref//g' > top_clusters
+}
+
+
+analyze_top_clusters){
+	. ~soft_bio_267/initializes/init_ruby
+	source ~soft_bio_267/initializes/init_degenes_hunter
+	cut -f 1,3 prepare_data)/all_tag_comb | cut -f 1 -d ' ' | sort -u > clust_gene
+	aggregate_column_data.rb -i clust_gene -x 0 -a 1 > clust_gene_AGG
+	intersect_columns.rb -k c -a clust_gene_AGG -b get_metrics_select_lists)/top_clusters  --full | cut -f 1,2 > genes_by_cluster.txt
+	?
+	clusters_to_enrichment.R -i genes_by_cluster.txt -w 1 -k "SYMBOL" -p 0.05 -c -o clust_enrich -M 'PRS' -S 0.7 -C 'ancestor' -F
+}
