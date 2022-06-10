@@ -41,5 +41,5 @@ if [ $1 == "w" ]; then
 	\\$combs=$combinations,
 	\\$top_clusters=10,
 	\\$string_data=$temp_path/string_data.txt" | tr -d '[:space:]' `
-	AutoFlow -w templates/workflow.txt -c 4 -t '7-00:00:00' -o $results"/wf_res" -n 'sr' -e -V $var_info $2
+	AutoFlow -w templates/workflow.txt -c 11 -m 180gb -t '7-00:00:00' -o $results"/wf_res" -n 'sr' -e -V $var_info $2
 fi
