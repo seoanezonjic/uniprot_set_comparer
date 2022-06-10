@@ -4,7 +4,7 @@ prepare_data){
 	rm all_tag_comb
 	for file in $combs/*; do
 		group=`basename $file`
-		intersect_columns.rb -k c -a all_recs -b $file --full | awk -F '\t' '{print "'$group'\t" $1 "\t" $6 "\t" $7 "\t" $8}' >> all_tag_comb
+		intersect_columns.rb -k c -a all_recs -b $file --full | awk -F '\t' '{print "'$group'\t" $1 "\t" $7 "\t" $8 "\t" $9}' >> all_tag_comb
 	done
 	awk '{if($3 >= $string_thr) print $0}' $string_data | tr ' ' '\t' > string_filtered
 	?
@@ -52,5 +52,5 @@ analyze_top_clusters){
 	aggregate_column_data.rb -i clust_gene -x 0 -a 1 > clust_gene_AGG
 	intersect_columns.rb -k c -a clust_gene_AGG -b get_metrics_select_lists)/top_clusters  --full | cut -f 1,2 > genes_by_cluster.txt
 	?
-	clusters_to_enrichment.R -i genes_by_cluster.txt -w 1 -k "SYMBOL" -p 0.05 -c -o clust_enrich -M 'PRS' -S 0.7 -C 'ancestor' -F
+	clusters_to_enrichment.R -i genes_by_cluster.txt -w [cpu] -t 1 -k "SYMBOL" -p 0.05 -c -o clust_enrich -S 0.7 -C 'ancestor' -F -f BP,MF,CC,KEGG,Reactome -M 'PRS'
 }

@@ -2,12 +2,12 @@
 queries=`pwd`/queries
 if [ $1 == "q" ]; then
 	mkdir -p queries
-	wget -O queries/I 'https://www.uniprot.org/uniprot/?query=inflammat*&format=tab&force=true&columns=id,entry%20name,reviewed,existence,annotation,protein%20names,genes,database(HGNC),database(STRING)&fil=reviewed:yes%20AND%20organism:%22Homo%20sapiens%20(Human)%20[9606]%22'
-	wget -O queries/A 'https://www.uniprot.org/uniprot/?query=angiog*&format=tab&force=true&columns=id,entry%20name,reviewed,existence,annotation,protein%20names,genes,database(HGNC),database(STRING)&fil=reviewed:yes%20AND%20organism:%22Homo%20sapiens%20(Human)%20[9606]%22'
-	wget -O queries/M 'https://www.uniprot.org/uniprot/?query=metastas*&format=tab&force=true&columns=id,entry%20name,reviewed,existence,annotation,protein%20names,genes,database(HGNC),database(STRING)&fil=reviewed:yes%20AND%20organism:%22Homo%20sapiens%20(Human)%20[9606]%22'
+	wget -O queries/I 'https://www.uniprot.org/uniprot/?query=inflammat*&format=tab&force=true&columns=id,entry%20name,reviewed,existence,annotation%20score,protein%20names,genes,database(HGNC),database(STRING)&fil=reviewed:yes%20AND%20organism:%22Homo%20sapiens%20(Human)%20[9606]%22'
+	wget -O queries/A 'https://www.uniprot.org/uniprot/?query=angiog*&format=tab&force=true&columns=id,entry%20name,reviewed,existence,annotation%20score,protein%20names,genes,database(HGNC),database(STRING)&fil=reviewed:yes%20AND%20organism:%22Homo%20sapiens%20(Human)%20[9606]%22'
+	wget -O queries/M 'https://www.uniprot.org/uniprot/?query=metastas*&format=tab&force=true&columns=id,entry%20name,reviewed,existence,annotation%20score,protein%20names,genes,database(HGNC),database(STRING)&fil=reviewed:yes%20AND%20organism:%22Homo%20sapiens%20(Human)%20[9606]%22'
 	mkdir filtered_queries
 	cd queries
-	for file in ./*; do grep 'Evidence at protein level' $file > ../filtered_queries/$file ; done
+	for file in ./*; do grep 'Evidence at protein level' $file | grep '5 out of 5' > ../filtered_queries/$file ; done
 	cd ..
 fi
 
@@ -41,5 +41,5 @@ if [ $1 == "w" ]; then
 	\\$combs=$combinations,
 	\\$top_clusters=10,
 	\\$string_data=$temp_path/string_data.txt" | tr -d '[:space:]' `
-	AutoFlow -w templates/workflow.txt -t '7-00:00:00' -o $results"/wf_res" -n 'sr' -e -V $var_info $2
+	AutoFlow -w templates/workflow.txt -c 4 -t '7-00:00:00' -o $results"/wf_res" -n 'sr' -e -V $var_info $2
 fi
